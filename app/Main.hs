@@ -353,7 +353,7 @@ thematicIndActImpf :: PersonalEnding
 thematicIndActImpf n p = addThematicVowel $ thematicSecondary n p
 
 thematicIndActAor :: PersonalEnding
-thematicIndActAor Singular   First   = [A]
+thematicIndActAor Singular   First   = A : []
 thematicIndActAor n@Singular p@Third = E : thematicSecondary n p
 thematicIndActAor n          p       = A : thematicSecondary n p
 
@@ -377,8 +377,11 @@ optativePE Singular First = [M, I]
 optativePE Plural   Third = [E, N]
 optativePE n'       p'    = thematicSecondary n' p'
 
-thematicOptActPrimary :: PersonalEnding
-thematicOptActPrimary n p = addThematicVowel $ addOptativeSuffix $ optativePE n p
+thematicOptActPres :: PersonalEnding
+thematicOptActPres n p = addThematicVowel $ addOptativeSuffix $ optativePE n p
+
+thematicOptActAor :: PersonalEnding
+thematicOptActAor n p = A : addOptativeSuffix (optativePE n p)
 
 stemAndThPE :: Mood -> Voice -> Tense t -> (StemConstructor, PersonalEnding)
 stemAndThPE Indicative  Active Present   = (id               , thematicIndActPrimary)
@@ -387,7 +390,8 @@ stemAndThPE Indicative  Active Imperfect = (addAugment       , thematicIndActImp
 stemAndThPE Indicative  Active Aorist    = (addAugment . addS, thematicIndActAor)
 stemAndThPE Subjunctive Active Present   = (id               , thematicSubjActPrimary)
 stemAndThPE Subjunctive Active Aorist    = (addS             , thematicSubjActPrimary)
-stemAndThPE Optative    Active Present   = (id               , thematicOptActPrimary)
+stemAndThPE Optative    Active Present   = (id               , thematicOptActPres)
+stemAndThPE Optative    Active Aorist    = (addS             , thematicOptActAor)
 stemAndThPE _           _      _         = undefined
 
 main :: IO ()
