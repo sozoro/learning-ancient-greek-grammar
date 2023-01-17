@@ -1,6 +1,5 @@
 {-# LANGUAGE GADTs #-}
 {-# LANGUAGE DataKinds #-}
-{-# LANGUAGE KindSignatures #-}
 {-# LANGUAGE RankNTypes #-}
 {-# LANGUAGE PolyKinds #-}
 {-# LANGUAGE StandaloneDeriving #-}
@@ -75,7 +74,7 @@ subscriptIota ls@(g:gs) =
   fromMaybe (greekChar g : subscriptIota gs) $ asum prefixSubstitutions
   where
     prefixSubstitutions :: [Maybe String]
-    prefixSubstitutions = (\(pat, c) -> ((c:) . subscriptIota) <$> stripPrefix pat ls)
+    prefixSubstitutions = (\(pat, c) -> (c:) . subscriptIota <$> stripPrefix pat ls)
                        <$> iotaSubscripts
 
 -- >>> read "ζῳον" :: GreekWord
@@ -319,7 +318,7 @@ addThematicVowel :: [GreekAlphabet] -> [GreekAlphabet]
 addThematicVowel ending@(M:_) = N.toList $ contract O ending
 addThematicVowel ending@(N:_) = N.toList $ contract O ending
 addThematicVowel ending@(I:_) = N.toList $ contract O ending
-addThematicVowel ending@_     = N.toList $ contract E ending
+addThematicVowel ending       = N.toList $ contract E ending
 
 thematicIndActPrimary :: PersonalEnding
 thematicIndActPrimary Singular First  = [W]
