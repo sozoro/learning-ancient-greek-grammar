@@ -321,12 +321,12 @@ addThematicVowel ending@(N:_) = N.toList $ contract O ending
 addThematicVowel ending@(I:_) = N.toList $ contract O ending
 addThematicVowel ending@_     = N.toList $ contract E ending
 
-thematicIndicActPrimary :: PersonalEnding
-thematicIndicActPrimary Singular First  = [W]
-thematicIndicActPrimary Singular Second = [E, I, S]
-thematicIndicActPrimary Singular Third  = [E, I]
-thematicIndicActPrimary Plural   Third  = [O, U, S, I]
-thematicIndicActPrimary n        p      = addThematicVowel $ thematicPrimary n p
+thematicIndActPrimary :: PersonalEnding
+thematicIndActPrimary Singular First  = [W]
+thematicIndActPrimary Singular Second = [E, I, S]
+thematicIndActPrimary Singular Third  = [E, I]
+thematicIndActPrimary Plural   Third  = [O, U, S, I]
+thematicIndActPrimary n        p      = addThematicVowel $ thematicPrimary n p
 
 thematicActPrimaryInfinitive :: [GreekAlphabet]
 thematicActPrimaryInfinitive = addThematicVowel [E, N]
@@ -349,13 +349,13 @@ addAugment = GreekWord . N.reverse . addAugment' . N.reverse . unGreekWord
     addAugment' (x N.:| stemTail) | x `elem` [U, Uu]       = Uu N.:| stemTail
     addAugment' stem                                       = E  N.<| stem
 
-thematicIndicActImpf :: PersonalEnding
-thematicIndicActImpf n p = addThematicVowel $ thematicSecondary n p
+thematicIndActImpf :: PersonalEnding
+thematicIndActImpf n p = addThematicVowel $ thematicSecondary n p
 
-thematicIndicActAor :: PersonalEnding
-thematicIndicActAor Singular   First   = [A]
-thematicIndicActAor n@Singular p@Third = E : thematicSecondary n p
-thematicIndicActAor n          p       = A : thematicSecondary n p
+thematicIndActAor :: PersonalEnding
+thematicIndActAor Singular   First   = [A]
+thematicIndActAor n@Singular p@Third = E : thematicSecondary n p
+thematicIndActAor n          p       = A : thematicSecondary n p
 
 lenthenThematicVowel :: [GreekAlphabet] -> [GreekAlphabet]
 lenthenThematicVowel (O:ending) = W : ending
@@ -363,7 +363,7 @@ lenthenThematicVowel (E:ending) = H : ending
 lenthenThematicVowel x          = x
 
 thematicSubjActPrimary :: PersonalEnding
-thematicSubjActPrimary n p = w $ lenthenThematicVowel $ thematicIndicActPrimary n p
+thematicSubjActPrimary n p = w $ lenthenThematicVowel $ thematicIndActPrimary n p
   where
     w (W:U:ending) = W : ending
     w x            = x
@@ -381,14 +381,14 @@ thematicOptActPrimary :: PersonalEnding
 thematicOptActPrimary n p = addThematicVowel $ addOptativeSuffix $ optativePE n p
 
 stemAndThPE :: Mood -> Voice -> Tense t -> (StemConstructor, PersonalEnding)
-stemAndThPE Indicative  Active Present   = (id               , thematicIndicActPrimary)
-stemAndThPE Indicative  Active Future    = (addS             , thematicIndicActPrimary)
-stemAndThPE Indicative  Active Imperfect = (addAugment       , thematicIndicActImpf)
-stemAndThPE Indicative  Active Aorist    = (addAugment . addS, thematicIndicActAor)
+stemAndThPE Indicative  Active Present   = (id               , thematicIndActPrimary)
+stemAndThPE Indicative  Active Future    = (addS             , thematicIndActPrimary)
+stemAndThPE Indicative  Active Imperfect = (addAugment       , thematicIndActImpf)
+stemAndThPE Indicative  Active Aorist    = (addAugment . addS, thematicIndActAor)
 stemAndThPE Subjunctive Active Present   = (id               , thematicSubjActPrimary)
 stemAndThPE Subjunctive Active Aorist    = (addS             , thematicSubjActPrimary)
 stemAndThPE Optative    Active Present   = (id               , thematicOptActPrimary)
-stemAndThPE _          _      _          = undefined
+stemAndThPE _           _      _         = undefined
 
 main :: IO ()
 main = putStrLn "Hello, Haskell!"
