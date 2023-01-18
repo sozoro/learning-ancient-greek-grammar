@@ -276,6 +276,10 @@ peith = read "πειθ"
 akou :: GreekWord
 akou = read "ακου"
 
+-- | 報告する
+aggel :: GreekWord
+aggel = read "αγγελ"
+
 addEnding :: GreekWord -> [GreekAlphabet] -> GreekWord
 addEnding stem ending = GreekWord
   $ (\(stemEnding N.:| ls) -> N.reverse (contract stemEnding ending) `N.appendList` ls)
@@ -288,31 +292,34 @@ conjugationTable :: (StemConstructor, PersonalEnding) -> GreekWord -> [GreekWord
 conjugationTable (f, ending) stem =
   [ f stem `addEnding` ending n p | n <- [minBound..maxBound], p <- [minBound..maxBound] ]
 
-thematicPrimary :: PersonalEnding
-thematicPrimary Singular First  = []
-thematicPrimary Singular Second = [S]
-thematicPrimary Singular Third  = [S, I]
-thematicPrimary Plural   First  = [M, E, N]
-thematicPrimary Plural   Second = [T, E]
-thematicPrimary Plural   Third  = [N, S, I]
+thematicAct :: T -> PersonalEnding
+thematicAct Primary   Singular First  = []
+thematicAct _         Singular Second = [S]
+thematicAct Primary   Singular Third  = [S, I]
+thematicAct _         Plural   First  = [M, E, N]
+thematicAct _         Plural   Second = [T, E]
+thematicAct Primary   Plural   Third  = [N, S, I]
+thematicAct Secondary Singular First  = [N]
+thematicAct Secondary Singular Third  = []
+thematicAct Secondary Plural   Third  = [N]
 
-athematicPrimary :: PersonalEnding
-athematicPrimary Singular First  = [M, I]
-athematicPrimary Singular Second = [Th, A]
-athematicPrimary Plural   Third  = [Aa, S, I]
-athematicPrimary n        p      = thematicPrimary n p
+athematicAct :: T -> PersonalEnding
+athematicAct Primary   Singular First  = [M, I]
+athematicAct Primary   Singular Second = [Th, A]
+athematicAct Primary   Plural   Third  = [Aa, S, I]
+athematicAct Secondary Plural   Third  = [S, A, N]
+athematicAct t         n        p      = thematicAct t n p
 
-thematicSecondary :: PersonalEnding
-thematicSecondary Singular First  = [N]
-thematicSecondary Singular Second = [S]
-thematicSecondary Singular Third  = []
-thematicSecondary Plural   First  = [M, E, N]
-thematicSecondary Plural   Second = [T, E]
-thematicSecondary Plural   Third  = [N]
-
-athematicSecondary :: PersonalEnding
-athematicSecondary Plural   Third  = [S, A, N]
-athematicSecondary n        p      = athematicSecondary n p
+midPass :: T -> PersonalEnding
+midPass Primary   Singular First  = [M, A, I]
+midPass Primary   Singular Second = [S, A, I]
+midPass Primary   Singular Third  = [T, A, I]
+midPass _         Plural   First  = [M, E, Th, A]
+midPass _         Plural   Second = [S, Th, E]
+midPass t         Plural   Third  = N : midPass t Singular Third
+midPass Secondary Singular First  = [M, H, N]
+midPass Secondary Singular Second = [S, O]
+midPass Secondary Singular Third  = [T, O]
 
 addThematicVowel :: [GreekAlphabet] -> [GreekAlphabet]
 addThematicVowel ending@(M:_) = N.toList $ contract O ending
@@ -325,7 +332,7 @@ thematicIndActPrimary Singular First  = [W]
 thematicIndActPrimary Singular Second = [E, I, S]
 thematicIndActPrimary Singular Third  = [E, I]
 thematicIndActPrimary Plural   Third  = [O, U, S, I]
-thematicIndActPrimary n        p      = addThematicVowel $ thematicPrimary n p
+thematicIndActPrimary n        p      = addThematicVowel $ thematicAct Primary n p
 
 thematicActPrimaryInfinitive :: [GreekAlphabet]
 thematicActPrimaryInfinitive = addThematicVowel [E, N]
@@ -334,8 +341,16 @@ addS :: StemConstructor
 addS (GreekWord (x N.:| stemInit)) | x `elem` labials  = GreekWord $ Ps N.:| stemInit
 addS (GreekWord (x N.:| stemInit)) | x `elem` palatals = GreekWord $ X  N.:| stemInit
 addS (GreekWord (x N.:| stemInit)) | x `elem` dentals  = GreekWord $ S  N.:| stemInit
-addS (GreekWord (x N.:| stemInit)) | x `elem` liquids  = GreekWord $ S  N.:| E : stemInit
+addS (GreekWord (x N.:| stemInit)) | x `elem` liquids  =
+                                                 GreekWord $ S  N.:| E : x : stemInit
 addS (GreekWord stem)                                  = GreekWord $ S  N.<| stem
+
+elidS :: GreekWord -> [GreekAlphabet] -> GreekWord
+elidS xs@(GreekWord (x N.:| _)) (S:y:ys) | isVowel x && isVowel y
+  = xs `addEnding` (y : ys)
+elidS (GreekWord (S N.:| (x:xs))) (y:ys) | isVowel x && isVowel y
+  = GreekWord (x N.:| xs) `addEnding` (y : ys)
+elidS xs ys = xs `addEnding` ys
 
 -- TODO: ρρ
 addAugment :: StemConstructor
@@ -349,12 +364,12 @@ addAugment = GreekWord . N.reverse . addAugment' . N.reverse . unGreekWord
     addAugment' stem                                       = E  N.<| stem
 
 thematicIndActImpf :: PersonalEnding
-thematicIndActImpf n p = addThematicVowel $ thematicSecondary n p
+thematicIndActImpf n p = addThematicVowel $ thematicAct Secondary n p
 
 thematicIndActAor :: PersonalEnding
 thematicIndActAor Singular   First   = A : []
-thematicIndActAor n@Singular p@Third = E : thematicSecondary n p
-thematicIndActAor n          p       = A : thematicSecondary n p
+thematicIndActAor n@Singular p@Third = E : thematicAct Secondary n p
+thematicIndActAor n          p       = A : thematicAct Secondary n p
 
 lenthenThematicVowel :: [GreekAlphabet] -> [GreekAlphabet]
 lenthenThematicVowel (O:ending) = W : ending
@@ -374,7 +389,7 @@ addOptativeSuffix = (I:)
 optativePE :: PersonalEnding
 optativePE Singular First = [M, I]
 optativePE Plural   Third = [E, N]
-optativePE n'       p'    = thematicSecondary n' p'
+optativePE n'       p'    = thematicAct Secondary n' p'
 
 thematicOptActPres :: PersonalEnding
 thematicOptActPres n p = addThematicVowel $ addOptativeSuffix $ optativePE n p
